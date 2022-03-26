@@ -1,5 +1,6 @@
 package progagoda.controller.auth;
 
+import com.google.gson.Gson;
 import progagoda.model.entity.UserEntity;
 import progagoda.model.proxy.UserProxy;
 import java.security.NoSuchAlgorithmException;
@@ -7,6 +8,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import javax.ejb.EJB;
 import javax.ejb.Stateful;
+import javax.ejb.Stateless;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import org.json.JSONException;
@@ -25,9 +27,8 @@ public class AuthCore {
 
     public AuthStatus init(String json) {
         try {
-            JSONObject object = new JSONObject(json);
-            this.login = object.getString("login");
-            this.pass = object.getString("password").toCharArray();
+            Gson object = new Gson();
+            AuthCore authCore = object.fromJson(json,AuthCore.class);
             return AuthStatus.OK;
         } catch (JSONException var3) {
             this.logger.error("JSON error while parsing \"{}\"", json, var3);
