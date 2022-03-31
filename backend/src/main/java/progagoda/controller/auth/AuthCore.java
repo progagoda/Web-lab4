@@ -16,7 +16,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Stateful
+@Stateless
 public class AuthCore {
     private final Logger logger = LoggerFactory.getLogger(AuthCore.class);
     @EJB
@@ -39,30 +39,46 @@ public class AuthCore {
         return AuthStatus.REQUEST_ERROR;
     }
 
-    private boolean isValid() {
-        return this.login != null && this.pass != null;
+    private boolean isValid(String json) {
+        Gson object = new Gson();
+        AuthCore authCore = object.fromJson(json,AuthCore.class);
+        char[] pass= authCore.pass;
+        String login = authCore.login;
+        return login != null && pass != null;
     }
 
-    private AuthStatus newUser() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        if (this.isValid()) {
+    private AuthStatus newUser(String json) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        if (this.isValid(json)) {
+            Gson object = new Gson();
+            AuthCore authCore = object.fromJson(json,AuthCore.class);
+            Long id = authCore.id;
+            char[] pass= authCore.pass;
+            String login = authCore.login;
+            UserProxy userProxy = authCore.userProxy;
             byte[] salt = PassHash.salt();
-            byte[] hash = PassHash.hash(salt, this.pass);
-            this.userProxy.save(new UserEntity(this.login, hash, salt));
-            this.id = this.userProxy.findByLogin(this.login).getId();
+            byte[] hash = PassHash.hash(salt, pass);
+            this.userProxy.save(new UserEntity(login, hash, salt));
+            this.id = userProxy.findByLogin(login).getId();
             return AuthStatus.OK;
         } else {
             return AuthStatus.UNDEFINED_ERROR;
         }
     }
 
-    public AuthStatus signIn() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        if (this.isValid()) {
-            UserEntity user = this.userProxy.findByLogin(this.login);
+    public AuthStatus signIn(String json) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        if (this.isValid(json)) {
+            Gson object = new Gson();
+            AuthCore authCore = object.fromJson(json,AuthCore.class);
+            Long id = authCore.id;
+            char[] pass= authCore.pass;
+            String login = authCore.login;
+            UserProxy userProxy = authCore.userProxy;
+            UserEntity user = userProxy.findByLogin(login);
             if (user == null) {
                 return AuthStatus.NO_USER_FOUND;
             } else {
-                this.id = user.getId();
-                byte[] hash = PassHash.hash(user.getSalt(), this.pass);
+                id = user.getId();
+                byte[] hash = PassHash.hash(user.getSalt(), pass);
                 return !Arrays.equals(user.getPassword(), hash) ? AuthStatus.WRONG_PASSWORD : AuthStatus.OK;
             }
         } else {
@@ -70,15 +86,21 @@ public class AuthCore {
         }
     }
 
-    public AuthStatus signUp() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        if (this.isValid()) {
-            UserEntity user = this.userProxy.findByLogin(this.login);
+    public AuthStatus signUp(String json) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        if (this.isValid(json)) {
+            Gson object = new Gson();
+            AuthCore authCore = object.fromJson(json,AuthCore.class);
+            Long id = authCore.id;
+            char[] pass= authCore.pass;
+            String login = authCore.login;
+            UserProxy userProxy = authCore.userProxy;
+            UserEntity user = userProxy.findByLogin(login);
             if (user != null) {
                 return AuthStatus.USER_ALREADY_EXISTS;
-            } else if (this.login.length() < 5) {
+            } else if (login.length() < 5) {
                 return AuthStatus.TOO_SHORT_LOGIN;
             } else {
-                return this.pass.length < 5 ? AuthStatus.TOO_SHORT_PASSWORD : this.newUser();
+                return this.pass.length < 5 ? AuthStatus.TOO_SHORT_PASSWORD : newUser(json);
             }
         } else {
             return AuthStatus.UNDEFINED_ERROR;
@@ -86,7 +108,12 @@ public class AuthCore {
     }
 
     public Response handleError(AuthStatus st, ResponseBuilder rb) {
-        rb.entity(String.format("{\"data\": \"%s\", \"status\": \"%b\"}", st.getDescription(), false));
+        Gson gson = new Gson();
+        StringBuilder status = new StringBuilder();
+        status.append("true");
+        rb.entity(gson.toJson(status));
+        rb.entity(gson.toJson(st.getDescription()));
+        rb.entity(gson.toJson(status));
         switch(st) {
             case USER_ALREADY_EXISTS:
             case TOO_SHORT_LOGIN:

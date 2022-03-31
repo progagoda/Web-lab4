@@ -1,5 +1,6 @@
 package progagoda.controller.res;
 
+import com.google.gson.Gson;
 import progagoda.model.entity.ResponseEntity;
 import progagoda.model.proxy.ResponseProxy;
 import java.util.List;
@@ -18,19 +19,30 @@ public class ResCore {
     private final Logger logger = LoggerFactory.getLogger(ResCore.class);
     @EJB
     private ResponseProxy response;
-    private float x;
-    private float y;
-    private float r;
 
     public ResCore() {
     }
-
+    public Float[] getParam(String json){
+        try {
+            JSONObject object = new JSONObject(json);
+            float x = Float.parseFloat(object.getString("x"));
+            float y = Float.parseFloat(object.getString("y"));
+            float r = Float.parseFloat(object.getString("r"));
+            Float result [] =new Float[] {x,y,r};
+            return result;
+        } catch (JSONException var3) {
+            this.logger.error("JSON error while parsing \"{}\"", json, var3);
+        } catch (Exception var4) {
+            this.logger.error("Undefined error on request \"{}\"", json, var4);
+        }
+        return null;
+    }
     public ResStatus init(String json) {
         try {
             JSONObject object = new JSONObject(json);
-            this.x = Float.parseFloat(object.getString("x"));
-            this.y = Float.parseFloat(object.getString("y"));
-            this.r = Float.parseFloat(object.getString("r"));
+            float x = Float.parseFloat(object.getString("x"));
+            float y = Float.parseFloat(object.getString("y"));
+            float r = Float.parseFloat(object.getString("r"));
             return ResStatus.OK;
         } catch (JSONException var3) {
             this.logger.error("JSON error while parsing \"{}\"", json, var3);
@@ -41,14 +53,16 @@ public class ResCore {
         return ResStatus.UNDEFINED_ERROR;
     }
 
-    public ResStatus validate() {
-        boolean y_valid = this.y >= -5.0F && this.y <= 5.0F;
-        boolean r_valid = this.r == 1.0F || this.r == 2.0F || this.r == 3.0F;
+    public ResStatus validate(Float[] result) {
+        float y = result[1];
+        float r =result[2];
+        boolean y_valid = y >= -5.0F && y <= 5.0F;
+        boolean r_valid = r == 1.0F || r == 2.0F || r == 3.0F;
         return y_valid && r_valid ? ResStatus.OK : ResStatus.VALIDATION_FAILED;
     }
 
-    public void save(long userId, long start) {
-        ResponseEntity entity = new ResponseEntity(userId, this.x, this.y, this.r, (System.nanoTime() - start) / 1000L, AreaCheckUtil.isIn(this.x, this.y, this.r), AreaCheckUtil.left(this.x), AreaCheckUtil.top(this.y));
+    public void save(long userId, long start, Float [] result) {
+        ResponseEntity entity = new ResponseEntity(userId, result[0], result[1], result[2], (System.nanoTime() - start) / 1000L, AreaCheckUtil.isIn(result[0], result[1], result[2]), AreaCheckUtil.left(result[0]), AreaCheckUtil.top(result[1]));
         this.response.save(entity);
     }
 
@@ -61,7 +75,11 @@ public class ResCore {
     }
 
     public Response handleError(ResStatus st, ResponseBuilder rb) {
-        rb.entity(String.format("{\"data\": \"%s\", \"status\": \"%b\"}", st.getDescription(), false));
+        StringBuilder status = new StringBuilder();
+        status.append("false");
+        Gson gson = new Gson();
+        rb.entity(gson.toJson(st.getDescription()));
+        rb.entity(gson.toJson(status));
         switch(st) {
             case VALIDATION_FAILED:
                 rb.status(401);
@@ -76,15 +94,4 @@ public class ResCore {
         return rb.build();
     }
 
-    public float getX() {
-        return this.x;
-    }
-
-    public float getY() {
-        return this.y;
-    }
-
-    public float getR() {
-        return this.r;
-    }
 }

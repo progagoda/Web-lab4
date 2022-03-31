@@ -1,5 +1,7 @@
 package progagoda.controller.auth;
 
+import com.google.gson.Gson;
+
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import javax.ejb.EJB;
@@ -24,9 +26,12 @@ public class AuthPath {
         ResponseBuilder rb = Response.ok();
         rb.header("Content-Type", "application/json;charset=UTF-8");
         AuthStatus st;
-        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signIn()) == AuthStatus.OK) {
+        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signIn(json)) == AuthStatus.OK) {
             rb.status(200);
-            rb.entity(String.format("{\"status\": \"%b\"}", true));
+            Gson gson = new Gson();
+            StringBuilder status = new StringBuilder();
+            status.append("true");
+            rb.entity(gson.toJson(status));
             return rb.build();
         } else {
             return this.auth.handleError(st, rb);
@@ -39,9 +44,12 @@ public class AuthPath {
         ResponseBuilder rb = Response.ok();
         rb.header("Content-Type", "application/json;charset=UTF-8");
         AuthStatus st;
-        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signUp()) == AuthStatus.OK) {
+        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signUp(json)) == AuthStatus.OK) {
             rb.status(200);
-            rb.entity(String.format("{\"status\": \"%b\"}", true));
+            Gson gson = new Gson();
+            StringBuilder status = new StringBuilder();
+            status.append("true");
+            rb.entity(gson.toJson(status));
             return rb.build();
         } else {
             return this.auth.handleError(st, rb);

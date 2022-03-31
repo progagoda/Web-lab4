@@ -1,6 +1,7 @@
 package progagoda.controller.res;
 
 
+import com.google.gson.Gson;
 import progagoda.controller.auth.AuthCore;
 import progagoda.controller.auth.AuthStatus;
 import progagoda.model.entity.ResponseEntity;
@@ -31,10 +32,10 @@ public class ResPath {
         rb.header("Content-Type", "application/json;charset=UTF-8");
         long start = System.nanoTime();
         AuthStatus st;
-        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signIn()) == AuthStatus.OK) {
+        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signIn(json)) == AuthStatus.OK) {
             ResStatus rst;
-            if ((rst = this.res.init(json)) == ResStatus.OK && (rst = this.res.validate()) == ResStatus.OK) {
-                this.res.save(this.auth.getId(), start);
+            if ((rst = this.res.init(json)) == ResStatus.OK && (rst = this.res.validate(this.res.getParam(json))) == ResStatus.OK) {
+                this.res.save(this.auth.getId(), start,this.res.getParam(json));
                 StringBuilder sb = new StringBuilder();
                 sb.append("[");
                 Iterator var8 = this.res.findAllById(this.auth.getId()).iterator();
@@ -48,7 +49,11 @@ public class ResPath {
                 sb.deleteCharAt(sb.length() - 1);
                 sb.append("]");
                 rb.status(200);
-                rb.entity(String.format("{\"data\": %s, \"status\": \"%b\"}", sb, true));
+                StringBuilder status = new StringBuilder();
+                status.append("true");
+                Gson gson = new Gson();
+                rb.entity(gson.toJson(sb));
+                rb.entity(gson.toJson(status));
                 return rb.build();
             } else {
                 return this.res.handleError(rst, rb);
@@ -64,10 +69,14 @@ public class ResPath {
         ResponseBuilder rb = Response.ok();
         rb.header("Content-Type", "application/json;charset=UTF-8");
         AuthStatus st;
-        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signIn()) == AuthStatus.OK) {
+        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signIn(json)) == AuthStatus.OK) {
             this.res.deleteAllById(this.auth.getId());
             rb.status(200);
-            rb.entity(String.format("{\"status\": \"%b\"}", true));
+            StringBuilder status = new StringBuilder();
+            status.append("true");
+            Gson gson = new Gson();
+            rb.entity(gson.toJson(st));
+            rb.entity(gson.toJson(status));
             return rb.build();
         } else {
             return this.auth.handleError(st, rb);
@@ -80,7 +89,7 @@ public class ResPath {
         ResponseBuilder rb = Response.ok();
         rb.header("Content-Type", "application/json;charset=UTF-8");
         AuthStatus st;
-        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signIn()) == AuthStatus.OK) {
+        if ((st = this.auth.init(json)) == AuthStatus.OK && (st = this.auth.signIn(json)) == AuthStatus.OK) {
             StringBuilder sb = new StringBuilder();
             sb.append("[");
             Iterator var5 = this.res.findAllById(this.auth.getId()).iterator();
@@ -94,7 +103,11 @@ public class ResPath {
             sb.deleteCharAt(sb.length() - 1);
             sb.append("]");
             rb.status(200);
-            rb.entity(String.format("{\"data\": %s, \"status\": \"%b\"}", sb, true));
+            StringBuilder status = new StringBuilder();
+            status.append("true");
+            Gson gson = new Gson();
+            rb.entity(gson.toJson(sb));
+            rb.entity(gson.toJson(status));
             return rb.build();
         } else {
             return this.auth.handleError(st, rb);
